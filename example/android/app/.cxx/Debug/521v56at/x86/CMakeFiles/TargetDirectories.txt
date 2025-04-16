@@ -1,0 +1,2 @@
+/Users/liuyinglong/Documents/github/flutter_broadcasts/example/android/app/.cxx/Debug/521v56at/x86/CMakeFiles/edit_cache.dir
+/Users/liuyinglong/Documents/github/flutter_broadcasts/example/android/app/.cxx/Debug/521v56at/x86/CMakeFiles/rebuild_cache.dir
