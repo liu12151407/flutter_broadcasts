@@ -58,6 +58,7 @@ class BroadcastReceiver {
     await _BroadcastChannel.instance.stopReceiver(this);
     await _subscription!.cancel();
     _subscription = null;
+    await _messages.close();
   }
 
   Map<String, dynamic> toMap() => <String, dynamic>{
