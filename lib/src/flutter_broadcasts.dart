@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 
 part 'broadcast.dart';
 
+part 'android_flags.dart';
+
 part 'native_channel.dart';
 
 part 'receiver.dart';
