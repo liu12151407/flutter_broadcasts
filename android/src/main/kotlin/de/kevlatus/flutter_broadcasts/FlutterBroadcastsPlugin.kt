@@ -40,11 +40,13 @@ class CustomBroadcastReceiver(
             }
             val data = dataPairs?.toMap() ?: mapOf()
             val action = it.action
+            val categories = it.categories?.toList() ?: listOf()
             if (action != null) {
                 listener(mapOf(
                         "receiverId" to id,
                         "name" to action,
-                        "data" to normalize(data)
+                        "data" to normalize(data),
+                        "categories" to categories
                 ))
             } else {
                 Log.w(TAG, "Received intent with null action, ignoring")
@@ -140,12 +142,14 @@ class MethodCallHandlerImpl(
     private fun withBroadcastArgs(
             call: MethodCall,
             result: Result,
-            func: (name: String, data: Map<String, Any>) -> Unit
+            func: (name: String, data: Map<String, Any>, flags: List<Int>, categories: List<String>) -> Unit
     ) {
         val name = call.argument<String>("name")
                 ?: return result.error("1", "no broadcast name provided", null)
         val data = call.argument<Map<String, Any>>("data") ?: mapOf()
-        func(name, data)
+        val flags = call.argument<List<Int>>("flags") ?: listOf()
+        val categories = call.argument<List<String>>("categories") ?: listOf()
+        func(name, data, flags, categories)
     }
 
     private fun onStartReceiver(call: MethodCall, result: Result) {
@@ -165,9 +169,11 @@ class MethodCallHandlerImpl(
     }
 
     private fun onSendBroadcast(call: MethodCall, result: Result) {
-        withBroadcastArgs(call, result) { name, data ->
+        withBroadcastArgs(call, result) { name, data, flags, categories ->
             Intent().also { intent ->
                 intent.action = name
+                flags.forEach { intent.addFlags(it) }
+                categories.forEach { intent.addCategory(it) }
                 data.forEach { entry ->
                     val value = entry.value
                     if (value != null) {

@@ -42,7 +42,7 @@ class BroadcastReceiver {
       throw StateError('This BroadcastReceiver is already started.');
     }
 
-    final stream = _BroadcastChannel.instance.startReceiver(this);
+    final stream = await _BroadcastChannel.instance.startReceiver(this);
     _subscription = stream.listen((event) {
       _messages.add(event);
     });

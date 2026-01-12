@@ -27,6 +27,18 @@ class BroadcastMessage {
   /// and sent using the same property.
   final Map<String, dynamic>? data;
 
+  /// Optional flags for the message.
+  ///
+  /// Currently only supported on Android.
+  /// See [Intent.setFlags](https://developer.android.com/reference/android/content/Intent#setFlags(int)).
+  final List<int>? flags;
+
+  /// Optional categories for the message.
+  ///
+  /// Currently only supported on Android.
+  /// See [Intent.addCategory](https://developer.android.com/reference/android/content/Intent#addCategory(java.lang.String)).
+  final List<String>? categories;
+
   /// The timestamp when this message was sent or retrieved.
   ///
   /// For incoming messages from a [BroadcastReceiver], this corresponds to the
@@ -48,15 +60,21 @@ class BroadcastMessage {
   BroadcastMessage({
     required this.name,
     this.data,
+    this.flags,
+    this.categories,
   })  : assert(name.isNotEmpty, 'BroadcastMessage name cannot be empty'),
         timestamp = DateTime.now(),
         _receiverId = null;
 
-  BroadcastMessage._fromMap(Map<dynamic, dynamic> map)
+  BroadcastMessage.fromMap(Map<dynamic, dynamic> map)
       : _receiverId = map['receiverId'] as int?,
         name = map['name'] as String? ?? '',
         data = map['data'] != null
             ? Map<String, dynamic>.from(map['data'] as Map)
+            : null,
+        flags = map['flags'] != null ? List<int>.from(map['flags'] as List) : null,
+        categories = map['categories'] != null
+            ? List<String>.from(map['categories'] as List)
             : null,
         timestamp = map.containsKey('timestamp') && map['timestamp'] != null
             ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'] as int)
@@ -71,6 +89,8 @@ class BroadcastMessage {
         'receiverId': _receiverId,
         'name': name,
         'data': data,
+        'flags': flags,
+        'categories': categories,
         'timestamp': timestamp?.millisecondsSinceEpoch,
       };
 
@@ -80,7 +100,15 @@ class BroadcastMessage {
   }
 
   @override
-  int get hashCode => Object.hash(_receiverId, name, data, timestamp);
+  int get hashCode => Object.hash(
+        _receiverId,
+        name,
+        Object.hashAll(data?.keys.toList() ?? const []),
+        Object.hashAll(data?.values.toList() ?? const []),
+        Object.hashAll(flags ?? const <int>[]),
+        Object.hashAll(categories ?? const <String>[]),
+        timestamp,
+      );
 
   @override
   bool operator ==(Object other) {
@@ -88,7 +116,9 @@ class BroadcastMessage {
         other is BroadcastMessage &&
             _receiverId == other._receiverId &&
             name == other.name &&
-            data == other.data &&
+            mapEquals(data, other.data) &&
+            listEquals(flags, other.flags) &&
+            listEquals(categories, other.categories) &&
             timestamp == other.timestamp;
   }
 }

@@ -1,36 +1,5 @@
 part of 'flutter_broadcasts.dart';
 
-/// Listens for [BroadcastMessages]s on the given [channel].
-///
-/// This listens for calls to 'receiveBroadcast' using
-/// [MethodChannel.setMethodCallHandler] and feeds all invocations into a
-/// [StreamController]. When there is no listener on the returned stream,
-/// listening on the [channel] is also paused.
-Stream<BroadcastMessage> _listenForBroadcasts(MethodChannel channel) {
-  // ignore: close_sinks
-  StreamController<BroadcastMessage>? controller;
-
-  void startListening() {
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'receiveBroadcast') {
-        final message = BroadcastMessage._fromMap(call.arguments);
-        controller?.add(message);
-      }
-    });
-  }
-
-  void stopListening() {
-    channel.setMethodCallHandler(null);
-  }
-
-  controller = StreamController<BroadcastMessage>.broadcast(
-    onListen: startListening,
-    onCancel: stopListening,
-  );
-
-  return controller.stream;
-}
-
 /// An internal singleton for managing the communication to the native platform.
 ///
 /// Since identically named [MethodChannel]s interfere with each other, this
@@ -41,12 +10,27 @@ class _BroadcastChannel {
   static const MethodChannel _channel = MethodChannel(_channelName);
   static _BroadcastChannel instance = _BroadcastChannel();
 
-  /// A permanent stream of [BroadcastMessage]s from the native platform.
-  ///
-  /// See: [_listenForBroadcasts]
-  final Stream<BroadcastMessage> _messages = _listenForBroadcasts(_channel);
+  final Map<int, StreamController<BroadcastMessage>> _receivers = {};
 
-  Stream<BroadcastMessage> startReceiver(BroadcastReceiver receiver) async* {
+  _BroadcastChannel() {
+    _channel.setMethodCallHandler(_handleMethodCall);
+  }
+
+  Future<dynamic> _handleMethodCall(MethodCall call) async {
+    if (call.method == 'receiveBroadcast') {
+      final message = BroadcastMessage.fromMap(call.arguments);
+      if (message._receiverId != null) {
+        _receivers[message._receiverId]?.add(message);
+      }
+    }
+  }
+
+  Future<Stream<BroadcastMessage>> startReceiver(BroadcastReceiver receiver) async {
+    _receivers.putIfAbsent(
+      receiver._id,
+      () => StreamController<BroadcastMessage>.broadcast(),
+    );
+
     try {
       final String? result =
           await _channel.invokeMethod('startReceiver', receiver.toMap());
@@ -58,7 +42,7 @@ class _BroadcastChannel {
       throw FlutterError('Platform error starting receiver: ${e.message}');
     }
 
-    yield* _messages.where((event) => receiver._id == event._receiverId);
+    return _receivers[receiver._id]!.stream;
   }
 
   /// Stops listening on a given [BroadcastReceiver].
@@ -72,6 +56,9 @@ class _BroadcastChannel {
       }
     } on PlatformException catch (e) {
       throw FlutterError('Platform error stopping receiver: ${e.message}');
+    } finally {
+      final controller = _receivers.remove(receiver._id);
+      await controller?.close();
     }
   }
 

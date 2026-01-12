@@ -175,7 +175,9 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
         let message: [String: Any?] = [
             "receiverId": receiverId,
             "name": name,
-            "data": data
+            "data": data,
+            "flags": [],
+            "categories": []
         ]
 
         // Send to Flutter via method channel

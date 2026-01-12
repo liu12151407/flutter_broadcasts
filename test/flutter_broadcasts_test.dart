@@ -13,6 +13,8 @@ void main() {
 
       expect(map['name'], equals("message.name.1"));
       expect(map['data'], isNull);
+      expect(map['flags'], isNull);
+      expect(map['categories'], isNull);
       expect(map['timestamp'], isNotNull);
 
       final data = <String, dynamic>{
@@ -20,11 +22,20 @@ void main() {
         "b": "t",
         "d": <int>[300, 200, 0]
       };
-      message = BroadcastMessage(name: "message.name.2", data: data);
+      final flags = <int>[1, 2, 4];
+      final categories = <String>["cat1", "cat2"];
+      message = BroadcastMessage(
+        name: "message.name.2",
+        data: data,
+        flags: flags,
+        categories: categories,
+      );
       map = message.toMap();
 
       expect(map['name'], equals("message.name.2"));
       expect(mapEquals(map['data'], data), isTrue);
+      expect(listEquals(map['flags'], flags), isTrue);
+      expect(listEquals(map['categories'], categories), isTrue);
       expect(map['timestamp'], isNotNull);
     });
 
@@ -44,8 +55,25 @@ void main() {
     });
 
     test('hashCode is consistent with equals', () async {
-      final message1 = BroadcastMessage(name: "test", data: {"key": "value"});
-      final message2 = BroadcastMessage(name: "test", data: {"key": "value"});
+      final data = {"key": "value"};
+      final flags = [1];
+      final categories = ["a"];
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      final message1 = BroadcastMessage.fromMap({
+        "name": "test",
+        "data": data,
+        "flags": flags,
+        "categories": categories,
+        "timestamp": timestamp,
+      });
+      final message2 = BroadcastMessage.fromMap({
+        "name": "test",
+        "data": data,
+        "flags": flags,
+        "categories": categories,
+        "timestamp": timestamp,
+      });
 
       expect(message1 == message2, isTrue);
       expect(message1.hashCode == message2.hashCode, isTrue);
