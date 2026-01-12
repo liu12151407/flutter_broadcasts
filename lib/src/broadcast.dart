@@ -103,10 +103,10 @@ class BroadcastMessage {
   int get hashCode => Object.hash(
         _receiverId,
         name,
-        Object.hashAll(data?.keys.toList() ?? const []),
-        Object.hashAll(data?.values.toList() ?? const []),
-        Object.hashAll(flags ?? const <int>[]),
-        Object.hashAll(categories ?? const <String>[]),
+        data != null ? Object.hashAllUnordered(data!.keys) : null,
+        data != null ? Object.hashAllUnordered(data!.values) : null,
+        flags != null ? Object.hashAll(flags!) : null,
+        categories != null ? Object.hashAll(categories!) : null,
         timestamp,
       );
 

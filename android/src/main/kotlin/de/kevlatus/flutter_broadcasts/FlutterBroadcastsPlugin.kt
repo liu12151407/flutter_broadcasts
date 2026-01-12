@@ -41,14 +41,15 @@ class CustomBroadcastReceiver(
             val data = dataPairs?.toMap() ?: mapOf()
             val action = it.action
             val categories = it.categories?.toList() ?: listOf()
-            if (action != null) {
-                listener(mapOf(
-                        "receiverId" to id,
-                        "name" to action,
-                        "data" to normalize(data),
-                        "categories" to categories
-                ))
-            } else {
+                        if (action != null) {
+                            listener(mapOf(
+                                    "receiverId" to id,
+                                    "name" to action,
+                                    "data" to normalize(data),
+                                    "categories" to normalize(categories)
+                            ))
+                        }
+             else {
                 Log.w(TAG, "Received intent with null action, ignoring")
             }
         }

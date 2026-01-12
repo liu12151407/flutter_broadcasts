@@ -18,15 +18,23 @@ class _BroadcastChannel {
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     if (call.method == 'receiveBroadcast') {
-      final message = BroadcastMessage.fromMap(call.arguments);
-      if (message._receiverId != null) {
-        _receivers[message._receiverId]?.add(message);
+      try {
+        final message = BroadcastMessage.fromMap(call.arguments);
+        final receiverId = message._receiverId;
+        if (receiverId != null) {
+          final controller = _receivers[receiverId];
+          if (controller != null && !controller.isClosed) {
+            controller.add(message);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error handling broadcast: $e');
       }
     }
   }
 
   Future<Stream<BroadcastMessage>> startReceiver(BroadcastReceiver receiver) async {
-    _receivers.putIfAbsent(
+    final controller = _receivers.putIfAbsent(
       receiver._id,
       () => StreamController<BroadcastMessage>.broadcast(),
     );
@@ -36,13 +44,18 @@ class _BroadcastChannel {
           await _channel.invokeMethod('startReceiver', receiver.toMap());
 
       if (result != null) {
+        _receivers.remove(receiver._id);
         throw FlutterError('Failed to start receiver: $result');
       }
     } on PlatformException catch (e) {
+      _receivers.remove(receiver._id);
       throw FlutterError('Platform error starting receiver: ${e.message}');
+    } catch (e) {
+      _receivers.remove(receiver._id);
+      rethrow;
     }
 
-    return _receivers[receiver._id]!.stream;
+    return controller.stream;
   }
 
   /// Stops listening on a given [BroadcastReceiver].
