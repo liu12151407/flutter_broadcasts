@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.util.Log
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -13,6 +14,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.io.Serializable
+import java.util.Date
 
 class CustomBroadcastReceiver(
         val id: Int,
@@ -51,7 +53,13 @@ class CustomBroadcastReceiver(
     }
 
     fun start(context: Context) {
-        context.registerReceiver(this, intentFilter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Use the literal constant 2 for RECEIVER_EXPORTED to ensure compilation
+            // even if the SDK definition is not available in the current environment.
+            context.registerReceiver(this, intentFilter, 2)
+        } else {
+            context.registerReceiver(this, intentFilter)
+        }
         Log.d(TAG, "starting to listen for broadcasts: " + names.joinToString(";"))
     }
 
@@ -161,7 +169,14 @@ class MethodCallHandlerImpl(
             Intent().also { intent ->
                 intent.action = name
                 data.forEach { entry ->
-                    intent.putExtra(entry.key, entry.value as Serializable)
+                    val value = entry.value
+                    if (value != null) {
+                        if (value is Serializable) {
+                            intent.putExtra(entry.key, value)
+                        } else {
+                            intent.putExtra(entry.key, value.toString())
+                        }
+                    }
                 }
                 context.sendBroadcast(intent)
                 Log.d(TAG, "sent broadcast: $name")
@@ -264,6 +279,8 @@ private fun normalize(x: Any?) : Any? {
         || x is FloatArray
     ) {
     	return x
+    } else if (x is Date) {
+        return x.time
     } else if (x is List<*>) {
         return normalizeList(x)
     } else if (x is Map<*, *>) {

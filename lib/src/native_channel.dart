@@ -37,8 +37,8 @@ Stream<BroadcastMessage> _listenForBroadcasts(MethodChannel channel) {
 /// singleton handles all communication to the platform and forwards messages to
 /// the appropriate [BroadcastReceiver].
 class _BroadcastChannel {
-  static const MethodChannel _channel =
-      const MethodChannel('de.kevlatus.flutter_broadcasts');
+  static const String _channelName = 'de.kevlatus.flutter_broadcasts';
+  static const MethodChannel _channel = MethodChannel(_channelName);
   static _BroadcastChannel instance = _BroadcastChannel();
 
   /// A permanent stream of [BroadcastMessage]s from the native platform.
@@ -47,11 +47,15 @@ class _BroadcastChannel {
   final Stream<BroadcastMessage> _messages = _listenForBroadcasts(_channel);
 
   Stream<BroadcastMessage> startReceiver(BroadcastReceiver receiver) async* {
-    final String? result =
-        await _channel.invokeMethod('startReceiver', receiver.toMap());
+    try {
+      final String? result =
+          await _channel.invokeMethod('startReceiver', receiver.toMap());
 
-    if (result != null) {
-      throw FlutterError(result);
+      if (result != null) {
+        throw FlutterError('Failed to start receiver: $result');
+      }
+    } on PlatformException catch (e) {
+      throw FlutterError('Platform error starting receiver: ${e.message}');
     }
 
     yield* _messages.where((event) => receiver._id == event._receiverId);
@@ -59,23 +63,31 @@ class _BroadcastChannel {
 
   /// Stops listening on a given [BroadcastReceiver].
   Future<void> stopReceiver(BroadcastReceiver receiver) async {
-    final String? result =
-        await _channel.invokeMethod('stopReceiver', receiver.toMap());
+    try {
+      final String? result =
+          await _channel.invokeMethod('stopReceiver', receiver.toMap());
 
-    if (result != null) {
-      throw FlutterError(result);
+      if (result != null) {
+        throw FlutterError('Failed to stop receiver: $result');
+      }
+    } on PlatformException catch (e) {
+      throw FlutterError('Platform error stopping receiver: ${e.message}');
     }
   }
 
   /// Sends the given broadcast [message] natively.
   Future<void> sendBroadcast(BroadcastMessage message) async {
-    final String? result = await _channel.invokeMethod(
-      "sendBroadcast",
-      message.toMap(),
-    );
+    try {
+      final String? result = await _channel.invokeMethod(
+        "sendBroadcast",
+        message.toMap(),
+      );
 
-    if (result != null) {
-      throw FlutterError(result);
+      if (result != null) {
+        throw FlutterError('Failed to send broadcast: $result');
+      }
+    } on PlatformException catch (e) {
+      throw FlutterError('Platform error sending broadcast: ${e.message}');
     }
   }
 }

@@ -203,7 +203,7 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
         } else if let data = value as? Data {
             return data
         } else if let date = value as? Date {
-            return Int(date.timeIntervalSince1970 * 1000)
+            return Int64(date.timeIntervalSince1970 * 1000)
         } else {
             // Fallback: convert to string representation
             return String(describing: value)
@@ -217,6 +217,8 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
 
     public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
         notificationManager.removeAll(center: NotificationCenter.default)
+        methodChannel?.setMethodCallHandler(nil)
+        methodChannel = nil
         SwiftFlutterBroadcastsPlugin.instance = nil
     }
 }
