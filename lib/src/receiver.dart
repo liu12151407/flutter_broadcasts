@@ -71,19 +71,11 @@ class BroadcastReceiver {
   }
 
   @override
-  int get hashCode =>
-      _id.hashCode ^
-      names.hashCode ^
-      _subscription.hashCode ^
-      _messages.hashCode;
+  int get hashCode => Object.hash(_id, names);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is BroadcastReceiver &&
-            other._id == _id &&
-            other.names == names &&
-            other._messages == _messages &&
-            other._subscription == _subscription;
+        other is BroadcastReceiver && other._id == _id && other.names == names;
   }
 }

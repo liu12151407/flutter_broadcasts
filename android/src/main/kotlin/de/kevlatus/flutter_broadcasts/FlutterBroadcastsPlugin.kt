@@ -37,11 +37,16 @@ class CustomBroadcastReceiver(
                 Pair(key, bundle.get(key))
             }
             val data = dataPairs?.toMap() ?: mapOf()
-            listener(mapOf(
-                    "receiverId" to id,
-                    "name" to it.action!!,
-                    "data" to normalize(data)
-            ))
+            val action = it.action
+            if (action != null) {
+                listener(mapOf(
+                        "receiverId" to id,
+                        "name" to action,
+                        "data" to normalize(data)
+                ))
+            } else {
+                Log.w(TAG, "Received intent with null action, ignoring")
+            }
         }
     }
 
@@ -65,20 +70,32 @@ class BroadcastManager(private val applicationContext: Context) {
 
     fun startReceiver(receiver: CustomBroadcastReceiver) {
         Log.d(TAG, "starting receiver " + receiver.id.toString())
-        // TODO: handle case when receiver exists
+
+        // Stop existing receiver with the same ID if it exists
+        receivers[receiver.id]?.let { existing ->
+            Log.w(TAG, "Receiver ${receiver.id} already exists, stopping it first")
+            existing.stop(applicationContext)
+        }
+
         receiver.start(applicationContext)
         receivers = receivers + Pair(receiver.id, receiver)
     }
 
     fun stopReceiver(id: Int) {
         Log.d(TAG, "stopping receiver $id")
-        // TODO: handle non-existing case
-        receivers[id]?.stop(applicationContext)
-        receivers = receivers.filter { it.key != id }
+
+        val receiver = receivers[id]
+        if (receiver != null) {
+            receiver.stop(applicationContext)
+            receivers = receivers.filter { it.key != id }
+        } else {
+            Log.w(TAG, "Receiver $id does not exist, nothing to stop")
+        }
     }
 
     fun stopAll() {
         receivers.forEach { it.value.stop(applicationContext) }
+        receivers = mapOf()
     }
 }
 
@@ -143,6 +160,7 @@ class MethodCallHandlerImpl(
                 context.sendBroadcast(intent)
                 Log.d(TAG, "sent broadcast: $name")
             }
+            result.success(null)
         }
     }
 

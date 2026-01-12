@@ -52,11 +52,13 @@ class BroadcastMessage {
         _receiverId = null;
 
   BroadcastMessage._fromMap(Map<dynamic, dynamic> map)
-      : _receiverId = map['receiverId'],
-        name = map['name'],
-        data = map['data'].cast<String, dynamic>(),
-        timestamp = map.containsKey('timestamp')
-            ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'])
+      : _receiverId = map['receiverId'] as int?,
+        name = map['name'] as String? ?? '',
+        data = map['data'] != null
+            ? Map<String, dynamic>.from(map['data'] as Map)
+            : null,
+        timestamp = map.containsKey('timestamp') && map['timestamp'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'] as int)
             : null;
 
   /// Creates a [Map] containing all information about this message.

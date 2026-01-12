@@ -1,5 +1,5 @@
 group 'de.kevlatus.flutter_broadcasts'
-version '1.0-SNAPSHOT'
+version '0.4.0'
 
 buildscript {
     ext.kotlin_version = '1.8.22'
@@ -36,8 +36,8 @@ android {
     }
     defaultConfig {
         minSdk = 21
-        versionCode 1
-        versionName "1.0"
+        versionCode 4
+        versionName "0.4.0"
         vectorDrawables {
             useSupportLibrary true
         }

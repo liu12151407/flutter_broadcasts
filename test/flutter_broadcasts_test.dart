@@ -74,12 +74,21 @@ void main() {
       // );
     });
 
-    // test("stop", () {
-    //   final receiver = BroadcastReceiver(names: <String>["broadcast.name"]);
-    // });
+    test("stop", () async {
+      final receiver = BroadcastReceiver(names: <String>["broadcast.name"]);
+      await receiver.start();
+      expect(receiver.isListening, isTrue);
+      await receiver.stop();
+      expect(receiver.isListening, isFalse);
+    });
 
-    // test("toMap", () {
-    //   final receiver = BroadcastReceiver(names: <String>["broadcast.name"]);
-    // });
+    test("toMap", () {
+      final names = <String>["broadcast.name.1", "broadcast.name.2"];
+      final receiver = BroadcastReceiver(names: names);
+      final map = receiver.toMap();
+
+      expect(map.containsKey('id'), isTrue);
+      expect(map['names'], equals(names));
+    });
   });
 }
