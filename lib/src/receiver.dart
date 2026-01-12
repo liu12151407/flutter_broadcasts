@@ -19,13 +19,24 @@ class BroadcastReceiver {
   /// See [BroadcastMessage.name] for more details.
   final List<String> names;
 
+  /// A list of categories to subscribe to (Android only).
+  final List<String>? categories;
+
+  /// Whether this receiver is exported to other apps (Android only).
+  ///
+  /// Defaults to false.
+  final bool isExported;
+
   StreamSubscription? _subscription;
 
   /// Creates a new [BroadcastReceiver], which subscribes to the given [names].
   ///
   /// At least one name needs to be provided.
-  BroadcastReceiver({required this.names})
-      : assert(names.length > 0),
+  BroadcastReceiver({
+    required this.names,
+    this.categories,
+    this.isExported = false,
+  })  : assert(names.length > 0),
         _id = ++_index;
 
   /// Returns true, if this [BroadcastReceiver] is currently listening for messages.
@@ -44,7 +55,9 @@ class BroadcastReceiver {
 
     final stream = await _BroadcastChannel.instance.startReceiver(this);
     _subscription = stream.listen((event) {
-      _messages.add(event);
+      if (!_messages.isClosed) {
+        _messages.add(event);
+      }
     });
   }
 
@@ -58,12 +71,16 @@ class BroadcastReceiver {
     await _BroadcastChannel.instance.stopReceiver(this);
     await _subscription!.cancel();
     _subscription = null;
-    await _messages.close();
+    if (!_messages.isClosed) {
+      await _messages.close();
+    }
   }
 
   Map<String, dynamic> toMap() => <String, dynamic>{
         'id': _id,
         'names': names,
+        'categories': categories,
+        'isExported': isExported,
       };
 
   @override
@@ -72,11 +89,20 @@ class BroadcastReceiver {
   }
 
   @override
-  int get hashCode => Object.hash(_id, names);
+  int get hashCode => Object.hash(
+        _id,
+        Object.hashAll(names),
+        categories != null ? Object.hashAll(categories!) : null,
+        isExported,
+      );
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is BroadcastReceiver && other._id == _id && other.names == names;
+        other is BroadcastReceiver &&
+            other._id == _id &&
+            listEquals(other.names, names) &&
+            listEquals(other.categories, categories) &&
+            other.isExported == isExported;
   }
 }

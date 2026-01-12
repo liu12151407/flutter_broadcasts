@@ -103,8 +103,10 @@ class BroadcastMessage {
   int get hashCode => Object.hash(
         _receiverId,
         name,
-        data != null ? Object.hashAllUnordered(data!.keys) : null,
-        data != null ? Object.hashAllUnordered(data!.values) : null,
+        data != null
+            ? Object.hashAllUnordered(
+                data!.entries.map((e) => Object.hash(e.key, e.value)))
+            : null,
         flags != null ? Object.hashAll(flags!) : null,
         categories != null ? Object.hashAll(categories!) : null,
         timestamp,

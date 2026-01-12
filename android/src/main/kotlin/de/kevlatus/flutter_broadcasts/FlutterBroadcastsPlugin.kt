@@ -17,60 +17,124 @@ import java.io.Serializable
 import java.util.Date
 
 class CustomBroadcastReceiver(
+
         val id: Int,
+
         private val names: List<String>,
+
+        private val categories: List<String> = listOf(),
+
+        private val isExported: Boolean = false,
+
         private val listener: (Any) -> Unit
+
 ) : BroadcastReceiver() {
+
     companion object {
+
         const val TAG: String = "CustomBroadcastReceiver"
+
+        const val RECEIVER_EXPORTED = 2
+
+        const val RECEIVER_NOT_EXPORTED = 4
+
     }
+
+
 
     private val intentFilter: IntentFilter by lazy {
+
         val intentFilter = IntentFilter()
+
         names.forEach { intentFilter.addAction(it) }
+
+        categories.forEach { intentFilter.addCategory(it) }
+
         intentFilter
+
     }
+
+
 
     override fun onReceive(context: Context?, intent: Intent?) {
+
         Log.d(TAG, "received intent " + intent?.action)
+
         intent?.let {
+
             val bundle = it.extras
+
             val dataPairs = bundle?.keySet()?.map { key ->
+
                 Pair(key, bundle.get(key))
+
             }
+
             val data = dataPairs?.toMap() ?: mapOf()
+
             val action = it.action
-            val categories = it.categories?.toList() ?: listOf()
-                        if (action != null) {
-                            listener(mapOf(
-                                    "receiverId" to id,
-                                    "name" to action,
-                                    "data" to normalize(data),
-                                    "categories" to normalize(categories)
-                            ))
-                        }
-             else {
+
+            val receivedCategories = it.categories?.toList() ?: listOf()
+
+            if (action != null) {
+
+                listener(mapOf(
+
+                        "receiverId" to id,
+
+                        "name" to action,
+
+                        "data" to normalize(data),
+
+                        "categories" to normalize(receivedCategories)
+
+                ))
+
+            } else {
+
                 Log.w(TAG, "Received intent with null action, ignoring")
+
             }
+
         }
+
     }
+
+
 
     fun start(context: Context) {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Use the literal constant 2 for RECEIVER_EXPORTED to ensure compilation
-            // even if the SDK definition is not available in the current environment.
-            context.registerReceiver(this, intentFilter, 2)
+
+            val flags = if (isExported) RECEIVER_EXPORTED else RECEIVER_NOT_EXPORTED
+
+            context.registerReceiver(this, intentFilter, flags)
+
         } else {
+
             context.registerReceiver(this, intentFilter)
+
         }
-        Log.d(TAG, "starting to listen for broadcasts: " + names.joinToString(";"))
+
+        Log.d(TAG, "starting to listen for broadcasts: " + names.joinToString(";") + 
+
+              " (categories: " + categories.joinToString(";") + ", exported: $isExported)")
+
     }
 
+
+
     fun stop(context: Context) {
+
         context.unregisterReceiver(this)
+
         Log.d(TAG, "stopped listening for broadcasts: " + names.joinToString(";"))
+
     }
+
 }
+
+
 
 class BroadcastManager(private val applicationContext: Context) {
     companion object {
@@ -129,7 +193,7 @@ class MethodCallHandlerImpl(
     private fun withReceiverArgs(
             call: MethodCall,
             result: Result,
-            func: (id: Int, names: List<String>) -> Unit
+            func: (id: Int, names: List<String>, categories: List<String>, isExported: Boolean) -> Unit
     ) {
         val id = call.argument<Int>("id")
                 ?: return result.error("1", "no receiver id provided", null)
@@ -137,7 +201,10 @@ class MethodCallHandlerImpl(
         val names = call.argument<List<String>>("names")
                 ?: return result.error("1", "no names provided", null)
 
-        func(id, names)
+        val categories = call.argument<List<String>>("categories") ?: listOf()
+        val isExported = call.argument<Boolean>("isExported") ?: false
+
+        func(id, names, categories, isExported)
     }
 
     private fun withBroadcastArgs(
@@ -154,8 +221,8 @@ class MethodCallHandlerImpl(
     }
 
     private fun onStartReceiver(call: MethodCall, result: Result) {
-        withReceiverArgs(call, result) { id, names ->
-            broadcastManager.startReceiver(CustomBroadcastReceiver(id, names) { broadcast ->
+        withReceiverArgs(call, result) { id, names, categories, isExported ->
+            broadcastManager.startReceiver(CustomBroadcastReceiver(id, names, categories, isExported) { broadcast ->
                 channel?.invokeMethod("receiveBroadcast", broadcast)
             })
             result.success(null)
@@ -286,6 +353,11 @@ private fun normalize(x: Any?) : Any? {
         || x is FloatArray
     ) {
     	return x
+    } else if (x is android.os.Bundle) {
+        val dataPairs = x.keySet()?.map { key ->
+            Pair(key, x.get(key))
+        }
+        return normalizeMap(dataPairs?.toMap() ?: mapOf<String, Any?>())
     } else if (x is Date) {
         return x.time
     } else if (x is List<*>) {
