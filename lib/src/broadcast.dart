@@ -75,8 +75,7 @@ class BroadcastMessage {
   }
 
   @override
-  int get hashCode =>
-      _receiverId.hashCode ^ name.hashCode ^ data.hashCode ^ timestamp.hashCode;
+  int get hashCode => Object.hash(_receiverId, name, data, timestamp);
 
   @override
   bool operator ==(Object other) {
