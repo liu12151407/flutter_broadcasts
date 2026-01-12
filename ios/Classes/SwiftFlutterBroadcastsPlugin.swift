@@ -5,42 +5,55 @@ import Foundation
 // Manages notification observers for receivers
 class NotificationObserverManager {
     private var observers: [Int: [NSObjectProtocol]] = [:]
+    private let queue = DispatchQueue(label: "de.kevlatus.flutter_broadcasts.observers", attributes: .concurrent)
+    private let barrierQueue = DispatchQueue(label: "de.kevlatus.flutter_broadcasts.barrier")
 
     func addObservers(id: Int, names: [String], center: NotificationCenter, onNotification: @escaping (Notification) -> Void) {
-        // Remove existing observers for this receiver ID
-        removeObservers(id: id, center: center)
-
-        var newObservers: [NSObjectProtocol] = []
-        for name in names {
-            let notificationName = NSNotification.Name(name)
-            let observer = center.addObserver(
-                forName: notificationName,
-                object: nil,
-                queue: .main
-            ) { notification in
-                onNotification(notification)
+        // Remove existing observers for this receiver ID first (synchronized)
+        barrierQueue.sync {
+            if let existingObservers = observers[id] {
+                for observer in existingObservers {
+                    center.removeObserver(observer)
+                }
+                observers.removeValue(forKey: id)
             }
-            newObservers.append(observer)
+
+            var newObservers: [NSObjectProtocol] = []
+            for name in names {
+                let notificationName = NSNotification.Name(name)
+                let observer = center.addObserver(
+                    forName: notificationName,
+                    object: nil,
+                    queue: .main
+                ) { notification in
+                    onNotification(notification)
+                }
+                newObservers.append(observer)
+            }
+            observers[id] = newObservers
         }
-        observers[id] = newObservers
     }
 
     func removeObservers(id: Int, center: NotificationCenter) {
-        if let existingObservers = observers[id] {
-            for observer in existingObservers {
-                center.removeObserver(observer)
+        barrierQueue.sync {
+            if let existingObservers = observers[id] {
+                for observer in existingObservers {
+                    center.removeObserver(observer)
+                }
             }
+            observers.removeValue(forKey: id)
         }
-        observers.removeValue(forKey: id)
     }
 
     func removeAll(center: NotificationCenter) {
-        for (_, observerList) in observers {
-            for observer in observerList {
-                center.removeObserver(observer)
+        barrierQueue.sync {
+            for (_, observerList) in observers {
+                for observer in observerList {
+                    center.removeObserver(observer)
+                }
             }
+            observers.removeAll()
         }
-        observers.removeAll()
     }
 }
 

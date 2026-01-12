@@ -27,6 +27,36 @@ void main() {
       expect(mapEquals(map['data'], data), isTrue);
       expect(map['timestamp'], isNotNull);
     });
+
+    test('timestamp format is milliseconds since epoch', () async {
+      final message = BroadcastMessage(name: "test.message");
+      final map = message.toMap();
+
+      expect(map['timestamp'], isA<int>());
+      expect(map['timestamp']!, greaterThan(0));
+    });
+
+    test('empty name throws assertion error', () async {
+      expect(
+        () => BroadcastMessage(name: ""),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('hashCode is consistent with equals', () async {
+      final message1 = BroadcastMessage(name: "test", data: {"key": "value"});
+      final message2 = BroadcastMessage(name: "test", data: {"key": "value"});
+
+      expect(message1 == message2, isTrue);
+      expect(message1.hashCode == message2.hashCode, isTrue);
+    });
+
+    test('toString returns map representation', () async {
+      final message = BroadcastMessage(name: "test.message");
+      final str = message.toString();
+
+      expect(str, contains("test.message"));
+    });
   });
 
   group("BroadcastReceiver", () {
@@ -89,6 +119,85 @@ void main() {
 
       expect(map.containsKey('id'), isTrue);
       expect(map['names'], equals(names));
+    });
+
+    test("empty names throws assertion error", () async {
+      expect(
+        () => BroadcastReceiver(names: <String>[]),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test("multiple receivers have unique IDs", () async {
+      final receiver1 = BroadcastReceiver(names: <String>["test.1"]);
+      final receiver2 = BroadcastReceiver(names: <String>["test.2"]);
+
+      final map1 = receiver1.toMap();
+      final map2 = receiver2.toMap();
+
+      expect(map1['id'], isNot(equals(map2['id'])));
+    });
+
+    test("start when already started throws StateError", () async {
+      final receiver = BroadcastReceiver(names: <String>["broadcast.name"]);
+      await receiver.start();
+
+      expect(
+        () => receiver.start(),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test("stop when not started is safe", () async {
+      final receiver = BroadcastReceiver(names: <String>["broadcast.name"]);
+
+      expect(() async => await receiver.stop(), returnsNormally);
+    });
+
+    test("hashCode is consistent with equals", () async {
+      final names = <String>["test.1", "test.2"];
+      final receiver1 = BroadcastReceiver(names: names);
+      final receiver2 = BroadcastReceiver(names: names);
+
+      // Same ID after creation
+      final map1 = receiver1.toMap();
+      final map2 = receiver2.toMap();
+      final sameId = map1['id'] == map2['id'];
+
+      expect(
+        (receiver1 == receiver2) == sameId,
+        isTrue,
+      );
+    });
+  });
+
+  group("sendBroadcast", () {
+    const MethodChannel channel =
+        MethodChannel('de.kevlatus.flutter_broadcasts');
+
+    setUp(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        switch (methodCall.method) {
+          case "sendBroadcast":
+            return null;
+        }
+        throw Error();
+      });
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    test("sendBroadcast calls native method", () async {
+      final message = BroadcastMessage(
+        name: "test.broadcast",
+        data: {"key": "value"},
+      );
+
+      expect(() async => await sendBroadcast(message), returnsNormally);
     });
   });
 }

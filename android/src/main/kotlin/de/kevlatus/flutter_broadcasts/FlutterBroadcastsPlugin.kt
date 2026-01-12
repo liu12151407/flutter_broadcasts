@@ -66,36 +66,45 @@ class BroadcastManager(private val applicationContext: Context) {
         const val TAG: String = "BroadcastManager"
     }
 
-    private var receivers: Map<Int, CustomBroadcastReceiver> = mapOf()
+    private val receiversLock = Any()
+    private var receivers: MutableMap<Int, CustomBroadcastReceiver> = mutableMapOf()
 
+    @Synchronized
     fun startReceiver(receiver: CustomBroadcastReceiver) {
         Log.d(TAG, "starting receiver " + receiver.id.toString())
 
-        // Stop existing receiver with the same ID if it exists
-        receivers[receiver.id]?.let { existing ->
-            Log.w(TAG, "Receiver ${receiver.id} already exists, stopping it first")
-            existing.stop(applicationContext)
-        }
+        synchronized(receiversLock) {
+            // Stop existing receiver with the same ID if it exists
+            receivers[receiver.id]?.let { existing ->
+                Log.w(TAG, "Receiver ${receiver.id} already exists, stopping it first")
+                existing.stop(applicationContext)
+            }
 
-        receiver.start(applicationContext)
-        receivers = receivers + Pair(receiver.id, receiver)
+            receiver.start(applicationContext)
+            receivers[receiver.id] = receiver
+        }
     }
 
+    @Synchronized
     fun stopReceiver(id: Int) {
         Log.d(TAG, "stopping receiver $id")
 
-        val receiver = receivers[id]
-        if (receiver != null) {
-            receiver.stop(applicationContext)
-            receivers = receivers.filter { it.key != id }
-        } else {
-            Log.w(TAG, "Receiver $id does not exist, nothing to stop")
+        synchronized(receiversLock) {
+            val receiver = receivers.remove(id)
+            if (receiver != null) {
+                receiver.stop(applicationContext)
+            } else {
+                Log.w(TAG, "Receiver $id does not exist, nothing to stop")
+            }
         }
     }
 
+    @Synchronized
     fun stopAll() {
-        receivers.forEach { it.value.stop(applicationContext) }
-        receivers = mapOf()
+        synchronized(receiversLock) {
+            receivers.values.forEach { it.stop(applicationContext) }
+            receivers.clear()
+        }
     }
 }
 

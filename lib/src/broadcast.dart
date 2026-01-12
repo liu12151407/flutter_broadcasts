@@ -48,7 +48,8 @@ class BroadcastMessage {
   BroadcastMessage({
     required this.name,
     this.data,
-  })  : timestamp = DateTime.now(),
+  })  : assert(name.isNotEmpty, 'BroadcastMessage name cannot be empty'),
+        timestamp = DateTime.now(),
         _receiverId = null;
 
   BroadcastMessage._fromMap(Map<dynamic, dynamic> map)
@@ -59,7 +60,11 @@ class BroadcastMessage {
             : null,
         timestamp = map.containsKey('timestamp') && map['timestamp'] != null
             ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'] as int)
-            : null;
+            : null {
+    if (name.isEmpty) {
+      throw ArgumentError('BroadcastMessage name cannot be empty');
+    }
+  }
 
   /// Creates a [Map] containing all information about this message.
   Map<String, dynamic> toMap() => <String, dynamic>{
