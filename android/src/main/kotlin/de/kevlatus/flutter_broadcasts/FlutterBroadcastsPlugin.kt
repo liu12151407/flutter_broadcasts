@@ -69,7 +69,6 @@ class BroadcastManager(private val applicationContext: Context) {
     private val receiversLock = Any()
     private var receivers: MutableMap<Int, CustomBroadcastReceiver> = mutableMapOf()
 
-    @Synchronized
     fun startReceiver(receiver: CustomBroadcastReceiver) {
         Log.d(TAG, "starting receiver " + receiver.id.toString())
 
@@ -85,7 +84,6 @@ class BroadcastManager(private val applicationContext: Context) {
         }
     }
 
-    @Synchronized
     fun stopReceiver(id: Int) {
         Log.d(TAG, "stopping receiver $id")
 
@@ -99,7 +97,6 @@ class BroadcastManager(private val applicationContext: Context) {
         }
     }
 
-    @Synchronized
     fun stopAll() {
         synchronized(receiversLock) {
             receivers.values.forEach { it.stop(applicationContext) }
@@ -250,8 +247,7 @@ class FlutterBroadcastsPlugin : FlutterPlugin {
  */
 private fun normalize(x: Any?) : Any? {
 	if (
-        x == null 
-        || x.equals(null)
+        x == null
         || x is Boolean
         || x is Int
         || x is Short

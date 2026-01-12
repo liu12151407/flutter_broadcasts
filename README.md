@@ -18,12 +18,12 @@ receiver.start();
 
 ## Roadmap
 
-This package is currently under construction. Below you can find a quick overview of its implementation status. Contributions are welcome, if you are missing features.
+This package provides cross-platform broadcast functionality. Below you can find a quick overview of its implementation status.
 
 - [x] implement broadcast receiver on Android
 - [x] implement broadcast sending on Android
-- [ ] implement NSNotificationCenter subscriptions on iOS
-- [ ] implement NSNotificationCenter notifications on iOS
+- [x] implement NSNotificationCenter subscriptions on iOS
+- [x] implement NSNotificationCenter notifications on iOS
 
 ## Contributions
 

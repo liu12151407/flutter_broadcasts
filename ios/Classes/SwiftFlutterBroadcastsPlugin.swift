@@ -1,11 +1,16 @@
 import Flutter
 import UIKit
 import Foundation
+import os.log
+
+// Simple logging helper
+private func Log(_ message: String) {
+    os_log("%{public}@", log: OSLog.default, type: .info, message)
+}
 
 // Manages notification observers for receivers
 class NotificationObserverManager {
     private var observers: [Int: [NSObjectProtocol]] = [:]
-    private let queue = DispatchQueue(label: "de.kevlatus.flutter_broadcasts.observers", attributes: .concurrent)
     private let barrierQueue = DispatchQueue(label: "de.kevlatus.flutter_broadcasts.barrier")
 
     func addObservers(id: Int, names: [String], center: NotificationCenter, onNotification: @escaping (Notification) -> Void) {
@@ -148,6 +153,14 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
     }
 
     private func handleNotification(_ notification: Notification, receiverId: Int) {
+        let name = notification.name.rawValue
+
+        // Validate notification name is not empty
+        guard !name.isEmpty else {
+            Log("Received notification with empty name, ignoring")
+            return
+        }
+
         var data: [String: Any] = [:]
 
         // Extract userInfo data
@@ -161,7 +174,7 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
 
         let message: [String: Any?] = [
             "receiverId": receiverId,
-            "name": notification.name.rawValue,
+            "name": name,
             "data": data
         ]
 
