@@ -27,6 +27,9 @@ class BroadcastReceiver {
   /// Defaults to false.
   final bool isExported;
 
+  /// Optional object to filter by on iOS.
+  final String? iosObject;
+
   StreamSubscription? _subscription;
 
   /// Creates a new [BroadcastReceiver], which subscribes to the given [names].
@@ -36,6 +39,7 @@ class BroadcastReceiver {
     required this.names,
     this.categories,
     this.isExported = false,
+    this.iosObject,
   })  : assert(names.length > 0),
         _id = ++_index;
 
@@ -81,6 +85,7 @@ class BroadcastReceiver {
         'names': names,
         'categories': categories,
         'isExported': isExported,
+        'iosObject': iosObject,
       };
 
   @override
@@ -94,6 +99,7 @@ class BroadcastReceiver {
         Object.hashAll(names),
         categories != null ? Object.hashAll(categories!) : null,
         isExported,
+        iosObject,
       );
 
   @override
@@ -103,6 +109,7 @@ class BroadcastReceiver {
             other._id == _id &&
             listEquals(other.names, names) &&
             listEquals(other.categories, categories) &&
-            other.isExported == isExported;
+            other.isExported == isExported &&
+            other.iosObject == iosObject;
   }
 }

@@ -39,6 +39,16 @@ class BroadcastMessage {
   /// See [Intent.addCategory](https://developer.android.com/reference/android/content/Intent#addCategory(java.lang.String)).
   final List<String>? categories;
 
+  /// Optional object to filter by on iOS.
+  ///
+  /// See [NotificationCenter](https://developer.apple.com/documentation/foundation/notificationcenter/1411723-addobserver).
+  final String? iosObject;
+
+  /// Optional package name to send the broadcast to on Android.
+  ///
+  /// See [Intent.setPackage](https://developer.android.com/reference/android/content/Intent#setPackage(java.lang.String)).
+  final String? androidPackage;
+
   /// The timestamp when this message was sent or retrieved.
   ///
   /// For incoming messages from a [BroadcastReceiver], this corresponds to the
@@ -62,6 +72,8 @@ class BroadcastMessage {
     this.data,
     this.flags,
     this.categories,
+    this.iosObject,
+    this.androidPackage,
   })  : assert(name.isNotEmpty, 'BroadcastMessage name cannot be empty'),
         timestamp = DateTime.now(),
         _receiverId = null;
@@ -72,10 +84,13 @@ class BroadcastMessage {
         data = map['data'] != null
             ? Map<String, dynamic>.from(map['data'] as Map)
             : null,
-        flags = map['flags'] != null ? List<int>.from(map['flags'] as List) : null,
+        flags =
+            map['flags'] != null ? List<int>.from(map['flags'] as List) : null,
         categories = map['categories'] != null
             ? List<String>.from(map['categories'] as List)
             : null,
+        iosObject = map['iosObject'] as String?,
+        androidPackage = map['androidPackage'] as String?,
         timestamp = map.containsKey('timestamp') && map['timestamp'] != null
             ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'] as int)
             : null {
@@ -91,6 +106,8 @@ class BroadcastMessage {
         'data': data,
         'flags': flags,
         'categories': categories,
+        'iosObject': iosObject,
+        'androidPackage': androidPackage,
         'timestamp': timestamp?.millisecondsSinceEpoch,
       };
 
@@ -109,6 +126,8 @@ class BroadcastMessage {
             : null,
         flags != null ? Object.hashAll(flags!) : null,
         categories != null ? Object.hashAll(categories!) : null,
+        iosObject,
+        androidPackage,
         timestamp,
       );
 
@@ -121,6 +140,8 @@ class BroadcastMessage {
             mapEquals(data, other.data) &&
             listEquals(flags, other.flags) &&
             listEquals(categories, other.categories) &&
+            iosObject == other.iosObject &&
+            androidPackage == other.androidPackage &&
             timestamp == other.timestamp;
   }
 }

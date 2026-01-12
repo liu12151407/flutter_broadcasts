@@ -210,14 +210,15 @@ class MethodCallHandlerImpl(
     private fun withBroadcastArgs(
             call: MethodCall,
             result: Result,
-            func: (name: String, data: Map<String, Any>, flags: List<Int>, categories: List<String>) -> Unit
+            func: (name: String, data: Map<String, Any>, flags: List<Int>, categories: List<String>, androidPackage: String?) -> Unit
     ) {
         val name = call.argument<String>("name")
                 ?: return result.error("1", "no broadcast name provided", null)
         val data = call.argument<Map<String, Any>>("data") ?: mapOf()
         val flags = call.argument<List<Int>>("flags") ?: listOf()
         val categories = call.argument<List<String>>("categories") ?: listOf()
-        func(name, data, flags, categories)
+        val androidPackage = call.argument<String>("androidPackage")
+        func(name, data, flags, categories, androidPackage)
     }
 
     private fun onStartReceiver(call: MethodCall, result: Result) {
@@ -237,9 +238,12 @@ class MethodCallHandlerImpl(
     }
 
     private fun onSendBroadcast(call: MethodCall, result: Result) {
-        withBroadcastArgs(call, result) { name, data, flags, categories ->
+        withBroadcastArgs(call, result) { name, data, flags, categories, androidPackage ->
             Intent().also { intent ->
                 intent.action = name
+                if (androidPackage != null) {
+                    intent.setPackage(androidPackage)
+                }
                 flags.forEach { intent.addFlags(it) }
                 categories.forEach { intent.addCategory(it) }
                 data.forEach { entry ->
@@ -253,7 +257,7 @@ class MethodCallHandlerImpl(
                     }
                 }
                 context.sendBroadcast(intent)
-                Log.d(TAG, "sent broadcast: $name")
+                Log.d(TAG, "sent broadcast: $name (package: $androidPackage)")
             }
             result.success(null)
         }

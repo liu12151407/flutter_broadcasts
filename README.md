@@ -87,6 +87,8 @@ await sendBroadcast(
 | Intent Flags | ✅ | ❌ |
 | Exported/Private Receivers | ✅ (API 33+) | N/A |
 | Recursive Bundle/Map Support | ✅ | ✅ |
+| iOS Object Filtering | ❌ | ✅ |
+| Android Explicit Broadcasts | ✅ | ❌ |
 
 ## Contributions
 

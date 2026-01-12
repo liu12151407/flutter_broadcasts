@@ -13,7 +13,7 @@ class NotificationObserverManager {
     private var observers: [Int: [NSObjectProtocol]] = [:]
     private let barrierQueue = DispatchQueue(label: "de.kevlatus.flutter_broadcasts.barrier")
 
-    func addObservers(id: Int, names: [String], center: NotificationCenter, onNotification: @escaping (Notification) -> Void) {
+    func addObservers(id: Int, names: [String], iosObject: String?, center: NotificationCenter, onNotification: @escaping (Notification) -> Void) {
         // Remove existing observers for this receiver ID first (synchronized)
         barrierQueue.sync {
             if let existingObservers = observers[id] {
@@ -26,12 +26,26 @@ class NotificationObserverManager {
             var newObservers: [NSObjectProtocol] = []
             for name in names {
                 let notificationName = NSNotification.Name(name)
+                
+                // If iosObject is provided, we can use it to filter notifications
+                // In this implementation, we treat the string as the object identity if needed,
+                // or we could use it for more complex matching. 
+                // For simplicity and cross-platform alignment, we'll store the observation.
                 let observer = center.addObserver(
                     forName: notificationName,
-                    object: nil,
+                    object: nil, // We'll filter manually in handleNotification to support the String mapping
                     queue: .main
                 ) { notification in
-                    onNotification(notification)
+                    // If the receiver specified an iosObject, we only forward if it matches
+                    if let filterObject = iosObject {
+                        if let senderObject = notification.object as? String, senderObject == filterObject {
+                            onNotification(notification)
+                        } else if notification.object == nil && filterObject.isEmpty {
+                             onNotification(notification)
+                        }
+                    } else {
+                        onNotification(notification)
+                    }
                 }
                 newObservers.append(observer)
             }
@@ -102,10 +116,13 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
             ))
             return
         }
+        
+        let iosObject = args["iosObject"] as? String
 
         notificationManager.addObservers(
             id: id,
             names: names,
+            iosObject: iosObject,
             center: NotificationCenter.default
         ) { [weak self] notification in
             self?.handleNotification(notification, receiverId: id)
@@ -141,11 +158,12 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
         }
 
         let data = args["data"] as? [String: Any] ?? [:]
+        let iosObject = args["iosObject"] as? String
         let notificationName = NSNotification.Name(name)
 
         NotificationCenter.default.post(
             name: notificationName,
-            object: nil,
+            object: iosObject,
             userInfo: data
         )
 
@@ -171,13 +189,16 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
                 }
             }
         }
+        
+        let iosObject = notification.object as? String
 
         let message: [String: Any?] = [
             "receiverId": receiverId,
             "name": name,
             "data": data,
             "flags": [],
-            "categories": []
+            "categories": [],
+            "iosObject": iosObject
         ]
 
         // Send to Flutter via method channel
