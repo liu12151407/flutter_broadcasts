@@ -246,16 +246,9 @@ class MethodCallHandlerImpl(
                 }
                 flags.forEach { intent.addFlags(it) }
                 categories.forEach { intent.addCategory(it) }
-                data.forEach { entry ->
-                    val value = entry.value
-                    if (value != null) {
-                        if (value is Serializable) {
-                            intent.putExtra(entry.key, value)
-                        } else {
-                            intent.putExtra(entry.key, value.toString())
-                        }
-                    }
-                }
+                
+                intent.putExtras(toBundle(data))
+                
                 context.sendBroadcast(intent)
                 Log.d(TAG, "sent broadcast: $name (package: $androidPackage)")
             }
@@ -384,4 +377,42 @@ private fun <K, V> normalizeMap(x: Map<K, V>) : Map<K, Any?> {
         Pair(key, normalize(x[key]))
     }
     return pairs.toMap()
+}
+
+private fun toBundle(map: Map<String, Any?>): android.os.Bundle {
+    val bundle = android.os.Bundle()
+    for (entry in map) {
+        val key = entry.key
+        val value = entry.value
+        when (value) {
+            null -> {} // Skip nulls
+            is Boolean -> bundle.putBoolean(key, value)
+            is Byte -> bundle.putByte(key, value)
+            is Char -> bundle.putChar(key, value)
+            is Short -> bundle.putShort(key, value)
+            is Int -> bundle.putInt(key, value)
+            is Long -> bundle.putLong(key, value)
+            is Float -> bundle.putFloat(key, value)
+            is Double -> bundle.putDouble(key, value)
+            is String -> bundle.putString(key, value)
+            is CharSequence -> bundle.putCharSequence(key, value)
+            is ByteArray -> bundle.putByteArray(key, value)
+            is android.os.Bundle -> bundle.putBundle(key, value)
+            is Map<*, *> -> {
+                @Suppress("UNCHECKED_CAST")
+                bundle.putBundle(key, toBundle(value as Map<String, Any?>))
+            }
+            is List<*> -> {
+                // For lists, we try to preserve serializable lists or fallback to string representation
+                if (value is Serializable) {
+                    bundle.putSerializable(key, value)
+                } else {
+                    bundle.putString(key, value.toString())
+                }
+            }
+            is Serializable -> bundle.putSerializable(key, value)
+            else -> bundle.putString(key, value.toString())
+        }
+    }
+    return bundle
 }

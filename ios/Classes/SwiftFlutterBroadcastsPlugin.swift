@@ -33,15 +33,22 @@ class NotificationObserverManager {
                 // For simplicity and cross-platform alignment, we'll store the observation.
                 let observer = center.addObserver(
                     forName: notificationName,
-                    object: nil, // We'll filter manually in handleNotification to support the String mapping
+                    object: nil, 
                     queue: .main
                 ) { notification in
                     // If the receiver specified an iosObject, we only forward if it matches
                     if let filterObject = iosObject {
-                        if let senderObject = notification.object as? String, senderObject == filterObject {
+                        let senderDescription: String?
+                        if let senderObject = notification.object as? String {
+                            senderDescription = senderObject
+                        } else if let obj = notification.object {
+                            senderDescription = String(describing: obj)
+                        } else {
+                            senderDescription = nil
+                        }
+                        
+                        if senderDescription == filterObject {
                             onNotification(notification)
-                        } else if notification.object == nil && filterObject.isEmpty {
-                             onNotification(notification)
                         }
                     } else {
                         onNotification(notification)
@@ -190,7 +197,14 @@ public class SwiftFlutterBroadcastsPlugin: NSObject, FlutterPlugin {
             }
         }
         
-        let iosObject = notification.object as? String
+        let iosObject: String?
+        if let senderObject = notification.object as? String {
+            iosObject = senderObject
+        } else if let obj = notification.object {
+            iosObject = String(describing: obj)
+        } else {
+            iosObject = nil
+        }
 
         let message: [String: Any?] = [
             "receiverId": receiverId,
