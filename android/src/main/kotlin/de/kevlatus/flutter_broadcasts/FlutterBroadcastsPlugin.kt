@@ -403,16 +403,24 @@ private fun toBundle(map: Map<String, Any?>): android.os.Bundle {
                 bundle.putBundle(key, toBundle(value as Map<String, Any?>))
             }
             is List<*> -> {
-                // For lists, we try to preserve serializable lists or fallback to string representation
-                if (value is Serializable) {
-                    bundle.putSerializable(key, value)
-                } else {
-                    bundle.putString(key, value.toString())
-                }
+                bundle.putSerializable(key, ArrayList(toSafeList(value)))
             }
             is Serializable -> bundle.putSerializable(key, value)
             else -> bundle.putString(key, value.toString())
         }
     }
     return bundle
+}
+
+private fun toSafeList(list: List<*>): List<Any?> {
+    return list.map { item ->
+        when (item) {
+            is Map<*, *> -> {
+                @Suppress("UNCHECKED_CAST")
+                toBundle(item as Map<String, Any?>)
+            }
+            is List<*> -> toSafeList(item)
+            else -> item
+        }
+    }
 }
