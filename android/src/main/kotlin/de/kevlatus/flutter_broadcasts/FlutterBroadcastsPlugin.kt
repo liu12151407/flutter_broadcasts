@@ -231,7 +231,7 @@ class MethodCallHandlerImpl(
     }
 
     private fun onStopReceiver(call: MethodCall, result: Result) {
-        withReceiverArgs(call, result) { id, _ ->
+        withReceiverArgs(call, result) { id, _, _, _ ->
             broadcastManager.stopReceiver(id)
             result.success(null)
         }
